@@ -1,0 +1,102 @@
+---
+title: "Course Project 1"
+output: html_document
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Read Data
+
+```{r read_data}
+a <- read.csv("activity.csv")
+a$date <- as.Date(a$date, "%Y-%m-%d")
+```
+
+## 2. Number of steps v/s Date
+
+```{r steps}
+c <- subset(a, !is.na(steps))
+b <- with(c, tapply(steps, date, sum))
+barplot(b, xlab = "Date", ylab = "Number of steps taken")
+with(c, tapply(steps, date, mean))
+with(c, tapply(steps, date, median))
+```
+
+## 3. Daily Activity Pattern
+
+```{r daily_activity}
+d <-  with(c, tapply(steps, interval, sum))
+e <- d/length(unique(c$date))
+plot(unique(c$interval),e,type = "l", xlab = "Interval", ylab = "Number of steps taken")
+max(e)
+```
+
+## 4. Imputing Missing Values
+
+```{r missing values}
+sum(is.na(a$steps))
+```
+
+The method used for imputing the missing values was:-  
+(a) Firstly we set the missing dates as the mean value for all those dates having known value and make a data frame containing date along with total number of steps taken on that date  
+(b) Then for all the rows containing missing steps we take average value from the above data frame.  
+
+```{r missing}
+f <- a
+g <- data.frame(date = names(b), steps = b)
+h <- unique(a$date)
+g$date <- as.Date(g$date, "%Y-%m-%d")
+k <- h[!(h %in% g$date)]
+m <- mean(g$steps)
+l <- data.frame(date = k, steps = rep(m, length(k)))
+n <- rbind.data.frame(g,l)
+z <- n[order(n$date),]
+for(i in 1:length(f$steps))
+{
+    if(is.na(f[i,"steps"]))
+    {
+        o <- f[i,"date"]
+        num <- sum(f$date == o)
+        p <- match(o, z$date)
+        f[i, "steps"] = z[p, "steps"]/num
+    }
+}
+sum(is.na(f$steps))
+j <- with(f, tapply(steps, date, sum))
+barplot(j, xlab = "Date", ylab = "Number of steps taken")
+with(f, tapply(steps, date, mean))
+with(f, tapply(steps, date, median))
+```
+
+Mean and median values do not differ from the previous estimate only new values have been entered.  
+The impact of imputing missing values is that we are able to see bar plot for more number of days.  
+
+
+## 5. Activity Patterns in weekdays and weekends
+
+```{r weekdays, fig.height=10}
+a$type <- weekdays(a$date)
+for(q in 1:length(a$type))
+{
+    if(a[q,"type"] %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    {
+        a[q,"type"] = "weekday"
+    }
+    else
+    {
+        a[q,"type"] = "weekend"
+    }
+}
+r <- subset(a, !is.na(steps))
+u <- subset(r, type == "weekday")
+v <- subset(r, type == "weekend")
+w <- with(u, tapply(steps, interval, mean))
+x <- with(v, tapply(steps, interval, mean))
+par(mfrow=c(2,1))
+plot(unique(u$interval),w, type = "l", main = "Weekday", xlab = "Interval", ylab = "Number of steps taken")
+plot(unique(v$interval),x, type = "l", main = "Weekend", xlab = "Interval", ylab = "Number of steps taken")
+```
+
